@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# ImmortalWrt X86 Enterprise Stable DIY Part 2
+# OpenWrt X86 Enterprise Stable DIY Part 2
 #
 
 echo "========================="
@@ -8,44 +8,89 @@ echo "开始执行企业版定制..."
 echo "========================="
 
 # =========================
-# 1. 默认 IP（稳定）
+# 1. 修改默认 IP
 # =========================
-sed -i 's/192.168.1.1/192.168.10.1/g' package/base-files/files/bin/config_generate
+sed -i 's/192.168.1.1/192.168.10.1/g' \
+package/base-files/files/bin/config_generate
 
 # =========================
-# 2. 主机名（兼容所有版本）
+# 2. 修改主机名
 # =========================
-sed -i 's/OpenWrt/企业级路由器/g' package/base-files/files/bin/config_generate
-sed -i 's/ImmortalWrt/企业级路由器/g' package/base-files/files/bin/config_generate
+sed -i 's/OpenWrt/企业级路由器/g' \
+package/base-files/files/bin/config_generate
+
+sed -i 's/ImmortalWrt/企业级路由器/g' \
+package/base-files/files/bin/config_generate
 
 # =========================
-# 3. 默认主题 Argon
+# 3. 设置默认 Argon 主题
 # =========================
-sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
+sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' \
+feeds/luci/collections/luci/Makefile
 
 # =========================
-# 4. UCI 默认初始化（安全版）
+# 4. 创建默认配置目录
 # =========================
 mkdir -p files/etc/uci-defaults
 
+# =========================
+# 5. 默认系统配置
+# =========================
 cat > files/etc/uci-defaults/99-default-settings <<'EOF'
 #!/bin/sh
 
-uci set system.@system[0].hostname='企业级路由器' 2>/dev/null
-uci commit system 2>/dev/null
+# 主机名
+uci set system.@system[0].hostname='企业级路由器'
+
+# 默认语言
+uci set luci.main.lang='zh_cn'
+
+# 默认主题
+uci set luci.main.mediaurlbase='/luci-static/argon'
+
+# 提交
+uci commit system
+uci commit luci
 
 exit 0
 EOF
 
-chmod +x files/etc/uci-defaults/99-default-settings
+chmod 755 files/etc/uci-defaults/99-default-settings
 
 # =========================
-# 5. Argon 页脚（安全 patch）
+# 6. 修改浏览器标题
+# =========================
+LOGIN_JSON="feeds/luci/modules/luci-base/root/usr/share/luci/menu.d/luci-base.json"
+
+if [ -f "$LOGIN_JSON" ]; then
+    sed -i 's/OpenWrt/企业级路由器/g' "$LOGIN_JSON"
+fi
+
+# =========================
+# 7. Argon 页脚企业信息
 # =========================
 ARGO_FOOTER="feeds/luci/themes/luci-theme-argon/luasrc/view/themes/argon/footer.htm"
 
 if [ -f "$ARGO_FOOTER" ]; then
-    sed -i 's|Powered by LuCI|东莞市杰迪电子科技 | 企业级路由器 IMM20260511|g' "$ARGO_FOOTER"
+
+cat > "$ARGO_FOOTER" <<'EOF'
+<%
+local ver = require "luci.version"
+%>
+
+<footer class="mobile-hide">
+    <div class="footer">
+        <a href="http://www.kocod.cn" target="_blank">
+            东莞市杰迪电子科技
+        </a>
+
+        <span>
+            ｜ 企业级路由器 IMM20260512
+        </span>
+    </div>
+</footer>
+EOF
+
 fi
 
 echo "========================="
