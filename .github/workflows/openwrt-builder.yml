@@ -1,11 +1,11 @@
-name: ImmortalWrt-X86
+name: OpenWrt-X86-Stable
 
 on:
   repository_dispatch:
   workflow_dispatch:
 
 env:
-  REPO_URL: https://github.com/immortalwrt/immortalwrt.git
+  REPO_URL: https://github.com/openwrt/openwrt.git
   REPO_BRANCH: openwrt-23.05
 
   CONFIG_FILE: .config
@@ -41,14 +41,8 @@ jobs:
         git clone $REPO_URL -b $REPO_BRANCH openwrt
 
     # =========================
-    # feeds 安全模式（关键）
+    # feeds（稳定模式）
     # =========================
-    - name: Load custom feeds
-      run: |
-        chmod +x $DIY_P1_SH
-        cd openwrt
-        $GITHUB_WORKSPACE/$DIY_P1_SH
-
     - name: Update feeds
       run: |
         cd openwrt
@@ -60,13 +54,20 @@ jobs:
         ./scripts/feeds install -a | tee feeds_install.log || true
 
     # =========================
-    # config 阶段
+    # DIY 脚本
+    # =========================
+    - name: Load custom scripts
+      run: |
+        chmod +x $DIY_P1_SH $DIY_P2_SH
+        cd openwrt
+        $GITHUB_WORKSPACE/$DIY_P1_SH || true
+
+    # =========================
+    # config
     # =========================
     - name: Load config
       run: |
         [ -e $CONFIG_FILE ] && mv $CONFIG_FILE openwrt/.config
-
-        chmod +x $DIY_P2_SH
 
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_P2_SH
@@ -74,23 +75,23 @@ jobs:
         make defconfig
 
     # =========================
-    # 下载依赖
+    # download（稳定模式）
     # =========================
     - name: Download packages
       run: |
         cd openwrt
-        make download -j8 || true
+        make download -j4 || true
 
     # =========================
-    # 编译（带 fallback）
+    # compile（关键稳定点）
     # =========================
     - name: Compile firmware
       run: |
         cd openwrt
-        make -j$(nproc) V=s || make -j1 V=s
+        make -j1 V=s
 
     # =========================
-    # artifact 安全处理
+    # artifacts
     # =========================
     - name: Prepare artifacts
       run: |
@@ -99,11 +100,11 @@ jobs:
     - name: Upload firmware
       uses: actions/upload-artifact@v4
       with:
-        name: ImmortalWrt-X86
+        name: OpenWrt-X86-Stable
         path: openwrt/bin/targets/x86/64/
 
     # =========================
-    # Release
+    # release
     # =========================
     - name: Release firmware
       uses: softprops/action-gh-release@v2
