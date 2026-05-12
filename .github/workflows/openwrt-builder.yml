@@ -27,37 +27,42 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Initialization environment
+    - name: Init environment
       run: |
         sudo apt-get update
-
         sudo apt-get install -y build-essential clang flex bison g++ gawk \
         gcc-multilib g++-multilib gettext git libncurses5-dev libssl-dev \
         python3 rsync unzip zlib1g-dev file wget curl ccache qemu-utils
 
         sudo timedatectl set-timezone "$TZ"
 
-    - name: Clone source code
+    - name: Clone source
       run: |
         git clone $REPO_URL -b $REPO_BRANCH openwrt
 
-    - name: Load custom feeds (SAFE MODE)
+    # =========================
+    # feeds 安全模式（关键）
+    # =========================
+    - name: Load custom feeds
       run: |
         chmod +x $DIY_P1_SH
         cd openwrt
-        $GITHUB_WORKSPACE/$DIY_P1_SH || true
+        $GITHUB_WORKSPACE/$DIY_P1_SH
 
     - name: Update feeds
       run: |
         cd openwrt
-        ./scripts/feeds update -a || true
+        ./scripts/feeds update -a | tee feeds_update.log
 
     - name: Install feeds
       run: |
         cd openwrt
-        ./scripts/feeds install -a || true
+        ./scripts/feeds install -a | tee feeds_install.log || true
 
-    - name: Load configuration
+    # =========================
+    # config 阶段
+    # =========================
+    - name: Load config
       run: |
         [ -e $CONFIG_FILE ] && mv $CONFIG_FILE openwrt/.config
 
@@ -68,20 +73,28 @@ jobs:
 
         make defconfig
 
+    # =========================
+    # 下载依赖
+    # =========================
     - name: Download packages
       run: |
         cd openwrt
         make download -j8 || true
 
+    # =========================
+    # 编译（带 fallback）
+    # =========================
     - name: Compile firmware
       run: |
         cd openwrt
-        make -j$(nproc) || make -j1 V=s
+        make -j$(nproc) V=s || make -j1 V=s
 
+    # =========================
+    # artifact 安全处理
+    # =========================
     - name: Prepare artifacts
       run: |
-        cd openwrt/bin/targets/x86/64
-        echo "FIRMWARE_PATH=$PWD" >> $GITHUB_ENV
+        echo "FIRMWARE_PATH=openwrt/bin/targets/x86/64" >> $GITHUB_ENV
 
     - name: Upload firmware
       uses: actions/upload-artifact@v4
@@ -89,6 +102,9 @@ jobs:
         name: ImmortalWrt-X86
         path: openwrt/bin/targets/x86/64/
 
+    # =========================
+    # Release
+    # =========================
     - name: Release firmware
       uses: softprops/action-gh-release@v2
       if: env.UPLOAD_RELEASE == 'true'
