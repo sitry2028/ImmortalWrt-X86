@@ -11,25 +11,18 @@ echo "========================="
 # 1. 默认 IP 修改
 # =========================
 CONFIG_FILE="package/base-files/files/bin/config_generate"
-if [ -f "$CONFIG_FILE" ]; then
-    sed -i 's/192.168.1.1/192.168.10.1/g' "$CONFIG_FILE"
-fi
+[ -f "$CONFIG_FILE" ] && sed -i 's/192.168.1.1/192.168.10.1/g' "$CONFIG_FILE"
 
 # =========================
 # 2. 默认主机名修改
 # =========================
-if [ -f "$CONFIG_FILE" ]; then
-    sed -i 's/OpenWrt/企业级路由器/g' "$CONFIG_FILE"
-    sed -i 's/ImmortalWrt/企业级路由器/g' "$CONFIG_FILE"
-fi
+[ -f "$CONFIG_FILE" ] && sed -i -e 's/OpenWrt/企业级路由器/g' -e 's/ImmortalWrt/企业级路由器/g' "$CONFIG_FILE"
 
 # =========================
-# 3. 默认 Argon 主题设置
+# 3. 默认 Argon 主题
 # =========================
 LUCIFILE="feeds/luci/collections/luci/Makefile"
-if [ -f "$LUCIFILE" ]; then
-    sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' "$LUCIFILE"
-fi
+[ -f "$LUCIFILE" ] && sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' "$LUCIFILE"
 
 # =========================
 # 4. 创建默认配置目录
@@ -45,28 +38,25 @@ cat > files/etc/uci-defaults/99-default-settings <<'EOF'
 # 主机名
 uci set system.@system[0].hostname='企业级路由器'
 
-# 默认语言为中文
+# 默认语言
 uci set luci.main.lang='zh_cn'
 
-# 默认主题 Argon
+# 默认主题
 uci set luci.main.mediaurlbase='/luci-static/argon'
 
-# 提交设置
+# 提交配置
 uci commit system
 uci commit luci
 
 exit 0
 EOF
-
 chmod 755 files/etc/uci-defaults/99-default-settings
 
 # =========================
 # 6. 浏览器标题优化
 # =========================
 LOGIN_JSON="feeds/luci/modules/luci-base/root/usr/share/luci/menu.d/luci-base.json"
-if [ -f "$LOGIN_JSON" ]; then
-    sed -i 's/OpenWrt/企业级路由器/g' "$LOGIN_JSON"
-fi
+[ -f "$LOGIN_JSON" ] && sed -i 's/OpenWrt/企业级路由器/g' "$LOGIN_JSON"
 
 # =========================
 # 7. Argon 页脚企业信息
