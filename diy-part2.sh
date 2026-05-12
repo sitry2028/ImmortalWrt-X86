@@ -1,48 +1,72 @@
 #!/bin/bash
 #
-# https://github.com/P3TERX/Actions-OpenWrt
-# File name: diy-part2.sh
-# Description: OpenWrt DIY script part 2 (After Update feeds)
+# ImmortalWrt X86 Enterprise
+# DIY Part 2
 #
 
+echo "========================="
+echo "开始执行企业版定制..."
+echo "========================="
+
 # 修改默认 IP
-sed -i 's/192.168.1.1/192.168.99.1/g' package/base-files/files/bin/config_generate
+sed -i 's/192.168.1.1/192.168.10.1/g' package/base-files/files/bin/config_generate
 
-# 修改设备型号
-sed -i 's/"Zbtlink ZBT-Z8103AX"/"TikTiok-803D"/' target/linux/mediatek/dts/mt7981b-zbtlink-zbt-z8103ax.dts
+# 修改主机名
+sed -i 's/ImmortalWrt/企业级路由器/g' package/base-files/files/bin/config_generate
 
-# 修正 UBI 分区大小
-sed -i 's/0x580000 0x4000000/0x580000 0x7280000/' target/linux/mediatek/dts/mt7981b-zbtlink-zbt-z8103ax.dts
+# 修改默认主题为 Argon
+sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
 
-# ========== 新增修改 ==========
-
-# 1. 修改主机名 (从 ImmortalWrt 改为 TikTiok)
-sed -i 's/ImmortalWrt/TikTiok/g' package/base-files/files/bin/config_generate
-
-# 2. 创建 uci-defaults 目录
+# 创建默认配置目录
 mkdir -p files/etc/uci-defaults
 
-# 3. 修改无线 SSID (2.4G & 5G)
-cat > files/etc/uci-defaults/98-set-wifi-ssid <<'EOF'
+# 设置默认登录信息
+cat > files/etc/uci-defaults/99-default-settings <<'EOF'
 #!/bin/sh
-uci set wireless.@wifi-iface[0].ssid='TikTiok'
-uci set wireless.@wifi-iface[1].ssid='TikTiok'
-uci commit wireless
-wifi reload
+
+# 设置默认主题
+uci set luci.main.mediaurlbase='/luci-static/argon'
+
+# 设置默认语言
+uci set luci.main.lang='zh_cn'
+
+# 设置默认主机名
+uci set system.@system[0].hostname='企业级路由器'
+
+# 提交配置
+uci commit luci
+uci commit system
+
 exit 0
 EOF
-chmod +x files/etc/uci-defaults/98-set-wifi-ssid
 
-# 4. 修改 LuCI 页脚：精确替换第一个链接（Powered by LuCI...），保留 Argon 和固件版本
-# 处理 argon 主题
+chmod +x files/etc/uci-defaults/99-default-settings
+
+# 修改 Argon 页脚
 ARGO_FOOTER="feeds/luci/themes/luci-theme-argon/luasrc/view/themes/argon/footer.htm"
+
 if [ -f "$ARGO_FOOTER" ]; then
-    # 匹配包含 'class="luci-link"' 的行，将第一个 <a>...</a> 整体替换为自定义链接
-    sed -i '/class="luci-link"/ { s|<a class="luci-link"[^>]*>.*</a>|<a href="https://www.tiktiok.top/" target="_blank">TikTiok学堂 · 跨境电商免费资源</a>| }' "$ARGO_FOOTER"
+
+cat > "$ARGO_FOOTER" <<'EOF'
+<%
+local ver = require "luci.version"
+%>
+
+<footer class="mobile-hide">
+    <div class="footer">
+        <a href="http://www.kocod.cn" target="_blank">
+            东莞市杰迪电子科技
+        </a>
+
+        <span>
+            ｜ 企业级路由器 IMM20260511
+        </span>
+    </div>
+</footer>
+EOF
+
 fi
 
-# 处理 bootstrap 主题（作为备用，如果存在）
-BOOT_FOOTER="feeds/luci/themes/luci-theme-bootstrap/luasrc/view/themes/bootstrap/footer.htm"
-if [ -f "$BOOT_FOOTER" ]; then
-    sed -i '/class="luci-link"/ { s|<a class="luci-link"[^>]*>.*</a>|<a href="https://www.tiktiok.top/" target="_blank">TikTiok学堂 · 跨境电商免费资源</a>| }' "$BOOT_FOOTER"
-fi
+echo "========================="
+echo "企业版定制完成"
+echo "========================="
