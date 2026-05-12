@@ -1,19 +1,16 @@
 #!/bin/bash
 #
-# https://github.com/P3TERX/Actions-OpenWrt
-# File name: diy-part1.sh
-# Description: OpenWrt DIY script part 1 (Before Update feeds)
-#
-# Copyright (c) 2019-2024 P3TERX <https://p3terx.com>
-#
-# This is free software, licensed under the MIT License.
-# See /LICENSE for more information.
+# ImmortalWrt X86 Enterprise
+# DIY Part 1
 #
 
-# Uncomment a feed source
-#sed -i 's/^#\(.*helloworld\)/\1/' feeds.conf.default
+# 删除可能冲突的软件源
+sed -i '/helloworld/d' feeds.conf.default
+sed -i '/passwall/d' feeds.conf.default
+sed -i '/passwall2/d' feeds.conf.default
 
-# Add a feed source
-echo 'src-git helloworld https://github.com/fw876/helloworld' >>feeds.conf.default
-#echo 'src-git passwall https://github.com/xiaorouji/openwrt-passwall' >>feeds.conf.default
-#echo 'src-git passwall2 https://github.com/xiaorouji/openwrt-passwall2.git' >> feeds.conf.default
+# 添加 Argon 主题
+git clone https://github.com/jerrykuku/luci-theme-argon.git package/luci-theme-argon
+
+# 添加 Argon 配置
+git clone https://github.com/jerrykuku/luci-app-argon-config.git package/luci-app-argon-config
